@@ -39,7 +39,9 @@ import org.springframework.boot.loader.jar.JarFile;
  * @since 1.0.0
  */
 public abstract class Launcher {
-
+	/***
+	*jar模式启动器类
+	*/
 	private static final String JAR_MODE_LAUNCHER = "org.springframework.boot.loader.jarmode.JarModeLauncher";
 
 	/**
@@ -50,6 +52,7 @@ public abstract class Launcher {
 	 */
 	protected void launch(String[] args) throws Exception {
 		if (!isExploded()) {
+			//  注册 URL 协议的处理器
 			JarFile.registerUrlProtocolHandler();
 		}
 		ClassLoader classLoader = createClassLoader(getClassPathArchivesIterator());
