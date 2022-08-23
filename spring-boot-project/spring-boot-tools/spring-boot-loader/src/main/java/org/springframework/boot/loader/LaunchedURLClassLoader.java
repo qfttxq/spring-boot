@@ -47,6 +47,9 @@ public class LaunchedURLClassLoader extends URLClassLoader {
 		ClassLoader.registerAsParallelCapable();
 	}
 
+	/**
+	 * 是否目录
+	 */
 	private final boolean exploded;
 
 	private final Archive rootArchive;
