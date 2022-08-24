@@ -118,16 +118,25 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 	 * @return the auto-configurations that should be imported
 	 */
 	protected AutoConfigurationEntry getAutoConfigurationEntry(AnnotationMetadata annotationMetadata) {
+		//  判断是否开启。如未开启，返回空数组。
 		if (!isEnabled(annotationMetadata)) {
 			return EMPTY_ENTRY;
 		}
+		// 获得注解的属性
 		AnnotationAttributes attributes = getAttributes(annotationMetadata);
+		// 获得符合条件的配置类的数组
 		List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes);
+		// 移除重复的配置类
 		configurations = removeDuplicates(configurations);
+		// 获得需要排除的配置类
 		Set<String> exclusions = getExclusions(annotationMetadata, attributes);
+		// 校验排除的配置类是否合法
 		checkExcludedClasses(configurations, exclusions);
+		// 从 configurations 中，移除需要排除的配置类
 		configurations.removeAll(exclusions);
+		// 根据条件（Condition），过滤掉不符合条件的配置类
 		configurations = getConfigurationClassFilter().filter(configurations);
+		// 触发自动配置类引入完成的事件
 		fireAutoConfigurationImportEvents(configurations, exclusions);
 		return new AutoConfigurationEntry(configurations, exclusions);
 	}
@@ -138,6 +147,8 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 	}
 
 	protected boolean isEnabled(AnnotationMetadata metadata) {
+		// 根据 "spring.boot.enableautoconfiguration" 配置判断，是否开启自动配置。
+		// 默认情况下（未配置），开启自动配置。
 		if (getClass() == AutoConfigurationImportSelector.class) {
 			return getEnvironment().getProperty(EnableAutoConfiguration.ENABLED_OVERRIDE_PROPERTY, Boolean.class, true);
 		}
@@ -153,6 +164,7 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 	 */
 	protected AnnotationAttributes getAttributes(AnnotationMetadata metadata) {
 		String name = getAnnotationClass().getName();
+		// 获得注解的属性
 		AnnotationAttributes attributes = AnnotationAttributes.fromMap(metadata.getAnnotationAttributes(name, true));
 		Assert.notNull(attributes, () -> "No auto-configuration attributes found. Is " + metadata.getClassName()
 				+ " annotated with " + ClassUtils.getShortName(name) + "?");
