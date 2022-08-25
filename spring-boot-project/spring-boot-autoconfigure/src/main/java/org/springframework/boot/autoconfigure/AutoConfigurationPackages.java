@@ -91,10 +91,11 @@ public abstract class AutoConfigurationPackages {
 	 * @param packageNames the package names to set
 	 */
 	public static void register(BeanDefinitionRegistry registry, String... packageNames) {
-		if (registry.containsBeanDefinition(BEAN)) {
+		// 如果已经存在该 BEAN ，则修改其包（package）属性
+		if (registry.containsBeanDefinition(BEAN)	) {
 			addBasePackages(registry.getBeanDefinition(BEAN), packageNames);
 		}
-		else {
+		else { // 如果不存在该 BEAN ，则创建一个 Bean ，并进行注册
 			RootBeanDefinition beanDefinition = new RootBeanDefinition(BasePackages.class);
 			beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
 			addBasePackages(beanDefinition, packageNames);
@@ -103,15 +104,19 @@ public abstract class AutoConfigurationPackages {
 	}
 
 	private static void addBasePackages(BeanDefinition beanDefinition, String[] additionalBasePackages) {
+		//构造函数参数值
 		ConstructorArgumentValues constructorArgumentValues = beanDefinition.getConstructorArgumentValues();
 		if (constructorArgumentValues.hasIndexedArgumentValue(0)) {
+			// 获得已存在的
 			String[] existingPackages = (String[]) constructorArgumentValues.getIndexedArgumentValue(0, String[].class)
 					.getValue();
+			//合并
 			constructorArgumentValues.addIndexedArgumentValue(0,
 					Stream.concat(Stream.of(existingPackages), Stream.of(additionalBasePackages)).distinct()
 							.toArray(String[]::new));
 		}
 		else {
+			//直接添加
 			constructorArgumentValues.addIndexedArgumentValue(0, additionalBasePackages);
 		}
 	}

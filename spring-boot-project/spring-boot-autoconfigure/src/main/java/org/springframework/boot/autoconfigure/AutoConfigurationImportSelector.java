@@ -246,8 +246,11 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 	 */
 	protected Set<String> getExclusions(AnnotationMetadata metadata, AnnotationAttributes attributes) {
 		Set<String> excluded = new LinkedHashSet<>();
+		// 注解上的 exclude 属性
 		excluded.addAll(asList(attributes, "exclude"));
+		// 注解上的 excludeName 属性
 		excluded.addAll(asList(attributes, "excludeName"));
+		// 配置文件的 spring.autoconfigure.exclude 属性
 		excluded.addAll(getExcludeAutoConfigurationsProperty());
 		return excluded;
 	}
