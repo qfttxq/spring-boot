@@ -42,15 +42,20 @@ public abstract class SpringBootCondition implements Condition {
 
 	@Override
 	public final boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+		// 获得注解的是方法名还是类名
 		String classOrMethodName = getClassOrMethodName(metadata);
 		try {
+			// 条件匹配结果
+			// getMatchOutcome 抽象方法由子类实现
 			ConditionOutcome outcome = getMatchOutcome(context, metadata);
 			logOutcome(classOrMethodName, outcome);
+			// 记录评估
 			recordEvaluation(context, classOrMethodName, outcome);
+			// 返回结果
 			return outcome.isMatch();
 		}
 		catch (NoClassDefFoundError ex) {
-			throw new IllegalStateException("Could not evaluate condition on " + classOrMethodName + " due to "
+			throw new IllegalStateException("Could   evaluate condition on " + classOrMethodName + " due to "
 					+ ex.getMessage() + " not found. Make sure your own configuration does not rely on "
 					+ "that class. This can also happen if you are "
 					+ "@ComponentScanning a springframework package (e.g. if you "

@@ -48,10 +48,13 @@ class OnClassCondition extends FilteringSpringBootCondition {
 		// Split the work and perform half in a background thread if more than one
 		// processor is available. Using a single additional thread seems to offer the
 		// best performance. More threads make things worse.
+		//如果有多个处理器可用，则拆分工作并在后台线程中执行一半。使用单个附加线程似乎可以提供最佳性能。更多线程会使事情变得更糟。
 		if (autoConfigurationClasses.length > 1 && Runtime.getRuntime().availableProcessors() > 1) {
+			//拆分两个线程进行处理
 			return resolveOutcomesThreaded(autoConfigurationClasses, autoConfigurationMetadata);
 		}
 		else {
+			//使用标准解析器处理
 			OutcomesResolver outcomesResolver = new StandardOutcomesResolver(autoConfigurationClasses, 0,
 					autoConfigurationClasses.length, autoConfigurationMetadata, getBeanClassLoader());
 			return outcomesResolver.resolveOutcomes();
@@ -60,13 +63,18 @@ class OnClassCondition extends FilteringSpringBootCondition {
 
 	private ConditionOutcome[] resolveOutcomesThreaded(String[] autoConfigurationClasses,
 			AutoConfigurationMetadata autoConfigurationMetadata) {
+		//每个线程处理一半的量
 		int split = autoConfigurationClasses.length / 2;
+		//创建一个新的后台线程处理一半
 		OutcomesResolver firstHalfResolver = createOutcomesResolver(autoConfigurationClasses, 0, split,
 				autoConfigurationMetadata);
+		//使用当前线程处理一半
 		OutcomesResolver secondHalfResolver = new StandardOutcomesResolver(autoConfigurationClasses, split,
 				autoConfigurationClasses.length, autoConfigurationMetadata, getBeanClassLoader());
+		//执行解析逻辑
 		ConditionOutcome[] secondHalf = secondHalfResolver.resolveOutcomes();
 		ConditionOutcome[] firstHalf = firstHalfResolver.resolveOutcomes();
+		//合并解析结果
 		ConditionOutcome[] outcomes = new ConditionOutcome[autoConfigurationClasses.length];
 		System.arraycopy(firstHalf, 0, outcomes, 0, firstHalf.length);
 		System.arraycopy(secondHalf, 0, outcomes, split, secondHalf.length);
@@ -82,30 +90,40 @@ class OnClassCondition extends FilteringSpringBootCondition {
 
 	@Override
 	public ConditionOutcome getMatchOutcome(ConditionContext context, AnnotatedTypeMetadata metadata) {
+		// 声明变量
 		ClassLoader classLoader = context.getClassLoader();
 		ConditionMessage matchMessage = ConditionMessage.empty();
+		// 获得 `@ConditionalOnClass` 注解的属性
 		List<String> onClasses = getCandidates(metadata, ConditionalOnClass.class);
 		if (onClasses != null) {
+			// 执行匹配，看看是否有缺失的
 			List<String> missing = filter(onClasses, ClassNameFilter.MISSING, classLoader);
+			// 如果有不匹配的，返回不匹配信息
 			if (!missing.isEmpty()) {
 				return ConditionOutcome.noMatch(ConditionMessage.forCondition(ConditionalOnClass.class)
 						.didNotFind("required class", "required classes").items(Style.QUOTE, missing));
 			}
+			// 如果匹配，添加到 matchMessage 中
 			matchMessage = matchMessage.andCondition(ConditionalOnClass.class)
 					.found("required class", "required classes")
 					.items(Style.QUOTE, filter(onClasses, ClassNameFilter.PRESENT, classLoader));
 		}
+		// 获得 `@ConditionalOnMissingClass` 注解的属性
 		List<String> onMissingClasses = getCandidates(metadata, ConditionalOnMissingClass.class);
 		if (onMissingClasses != null) {
+			// 执行匹配，看看是否有多余的
 			List<String> present = filter(onMissingClasses, ClassNameFilter.PRESENT, classLoader);
+			// 如果有不匹配的，返回不匹配信息
 			if (!present.isEmpty()) {
 				return ConditionOutcome.noMatch(ConditionMessage.forCondition(ConditionalOnMissingClass.class)
 						.found("unwanted class", "unwanted classes").items(Style.QUOTE, present));
 			}
+			// 如果匹配，添加到 matchMessage 中
 			matchMessage = matchMessage.andCondition(ConditionalOnMissingClass.class)
 					.didNotFind("unwanted class", "unwanted classes")
 					.items(Style.QUOTE, filter(onMissingClasses, ClassNameFilter.MISSING, classLoader));
 		}
+		// 返回匹配的结果
 		return ConditionOutcome.match(matchMessage);
 	}
 
@@ -135,18 +153,24 @@ class OnClassCondition extends FilteringSpringBootCondition {
 	}
 
 	private static final class ThreadedOutcomesResolver implements OutcomesResolver {
-
+		/**
+		 * 新起的线程
+		 */
 		private final Thread thread;
-
+		/**
+		 * 条件匹配结果
+		 */
 		private volatile ConditionOutcome[] outcomes;
 
 		private ThreadedOutcomesResolver(OutcomesResolver outcomesResolver) {
+			// 创建线程,执行解析任务
 			this.thread = new Thread(() -> this.outcomes = outcomesResolver.resolveOutcomes());
 			this.thread.start();
 		}
 
 		@Override
 		public ConditionOutcome[] resolveOutcomes() {
+			// 等待线程执行结束
 			try {
 				this.thread.join();
 			}
@@ -159,11 +183,17 @@ class OnClassCondition extends FilteringSpringBootCondition {
 	}
 
 	private static final class StandardOutcomesResolver implements OutcomesResolver {
-
+		/**
+		 * 所有的配置类的数组
+		 */
 		private final String[] autoConfigurationClasses;
-
+		/**
+		 * 匹配的 {@link #autoConfigurationClasses} 开始位置
+		 */
 		private final int start;
-
+		/**
+		 * 匹配的 {@link #autoConfigurationClasses} 结束位置
+		 */
 		private final int end;
 
 		private final AutoConfigurationMetadata autoConfigurationMetadata;
@@ -186,12 +216,16 @@ class OnClassCondition extends FilteringSpringBootCondition {
 
 		private ConditionOutcome[] getOutcomes(String[] autoConfigurationClasses, int start, int end,
 				AutoConfigurationMetadata autoConfigurationMetadata) {
+			// 创建 ConditionOutcome 结果数组
 			ConditionOutcome[] outcomes = new ConditionOutcome[end - start];
+			// 遍历 autoConfigurationClasses 数组，从 start 到 end
 			for (int i = start; i < end; i++) {
 				String autoConfigurationClass = autoConfigurationClasses[i];
 				if (autoConfigurationClass != null) {
+					// 获得指定自动配置类的 @ConditionalOnClass 注解的要求类
 					String candidates = autoConfigurationMetadata.get(autoConfigurationClass, "ConditionalOnClass");
 					if (candidates != null) {
+						// 执行匹配
 						outcomes[i - start] = getOutcome(candidates);
 					}
 				}
@@ -201,11 +235,15 @@ class OnClassCondition extends FilteringSpringBootCondition {
 
 		private ConditionOutcome getOutcome(String candidates) {
 			try {
+				// 如果没有 , ，说明只有一个，直接匹配即可
 				if (!candidates.contains(",")) {
 					return getOutcome(candidates, this.beanClassLoader);
 				}
+				// 如果有 , ，说明有多个，逐个匹配
 				for (String candidate : StringUtils.commaDelimitedListToStringArray(candidates)) {
+					// 执行匹配
 					ConditionOutcome outcome = getOutcome(candidate, this.beanClassLoader);
+					// 如果存在不匹配，则返回该结果
 					if (outcome != null) {
 						return outcome;
 					}
