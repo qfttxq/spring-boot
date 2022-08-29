@@ -65,7 +65,7 @@ public class BackgroundPreinitializer implements ApplicationListener<SpringAppli
 	private static final CountDownLatch preinitializationComplete = new CountDownLatch(1);
 
 	private static final boolean ENABLED;
-
+	//根据条件判断是否启用预初始化
 	static {
 		ENABLED = !Boolean.getBoolean(IGNORE_BACKGROUNDPREINITIALIZER_PROPERTY_NAME) && !NativeDetector.inNativeImage()
 				&& Runtime.getRuntime().availableProcessors() > 1;
@@ -81,13 +81,16 @@ public class BackgroundPreinitializer implements ApplicationListener<SpringAppli
 		if (!ENABLED) {
 			return;
 		}
+		//是ApplicationEnvironmentPreparedEvent事件，并且预初始化未执行的情况下，执行预初始化
 		if (event instanceof ApplicationEnvironmentPreparedEvent
 				&& preinitializationStarted.compareAndSet(false, true)) {
 			performPreinitialization();
 		}
+		//如果事件是ApplicationReadyEvent 或者 ApplicationFailedEvent，并且已经开始执行预初化,线程等待
 		if ((event instanceof ApplicationReadyEvent || event instanceof ApplicationFailedEvent)
 				&& preinitializationStarted.get()) {
 			try {
+				//等待线程执行完成
 				preinitializationComplete.await();
 			}
 			catch (InterruptedException ex) {
@@ -107,6 +110,7 @@ public class BackgroundPreinitializer implements ApplicationListener<SpringAppli
 					runSafely(new MessageConverterInitializer());
 					runSafely(new JacksonInitializer());
 					runSafely(new CharsetInitializer());
+					//线程执行完成
 					preinitializationComplete.countDown();
 				}
 
@@ -126,6 +130,7 @@ public class BackgroundPreinitializer implements ApplicationListener<SpringAppli
 			// This will fail on GAE where creating threads is prohibited. We can safely
 			// continue but startup will be slightly slower as the initialization will now
 			// happen on the main thread.
+			//线程执行完成
 			preinitializationComplete.countDown();
 		}
 	}

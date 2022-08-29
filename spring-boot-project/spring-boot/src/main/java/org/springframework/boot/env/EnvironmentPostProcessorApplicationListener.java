@@ -90,20 +90,26 @@ public class EnvironmentPostProcessorApplicationListener implements SmartApplica
 
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
+		//如果是 ApplicationEnvironmentPreparedEvent 事件，说明 Spring 环境准备好了，则执行相应的处理
 		if (event instanceof ApplicationEnvironmentPreparedEvent environmentPreparedEvent) {
 			onApplicationEnvironmentPreparedEvent(environmentPreparedEvent);
 		}
+		//如果是 ApplicationPreparedEvent 事件，说明 Spring 容器初始化好了，则进行相应的处理。
 		if (event instanceof ApplicationPreparedEvent) {
 			onApplicationPreparedEvent();
 		}
+		//如果是 ApplicationFailedEvent 事件，说明 Spring 启动失败，进行处理
 		if (event instanceof ApplicationFailedEvent) {
 			onApplicationFailedEvent();
 		}
 	}
 
 	private void onApplicationEnvironmentPreparedEvent(ApplicationEnvironmentPreparedEvent event) {
+		//获得ConfigurableEnvironment对象
 		ConfigurableEnvironment environment = event.getEnvironment();
+		//获得SpringApplication对象
 		SpringApplication application = event.getSpringApplication();
+		//获得EnvironmentPostProcessor集合，一个个执行
 		for (EnvironmentPostProcessor postProcessor : getEnvironmentPostProcessors(application.getResourceLoader(),
 				event.getBootstrapContext())) {
 			postProcessor.postProcessEnvironment(environment, application);
